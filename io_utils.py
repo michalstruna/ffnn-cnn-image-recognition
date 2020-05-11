@@ -1,7 +1,7 @@
 from argparse import ArgumentParser
-import os
 from matplotlib import pyplot as plt
 import numpy as np
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
 from ai import FFNN, CNN
 
@@ -47,6 +47,7 @@ def read_img(path):
     image = plt.imread(path)
     return image
 
+
 def show_img(img):
     plt.imshow(img)
     plt.show()
@@ -66,45 +67,37 @@ def create_output(value, size):
     return output
 
 
-def prepare_input_set(dirs, transform=False):
-    """
-    Prepare input set for testing or training.
+def prepare_input_set(path_dir, train=False, transform_input=None):
+    if train:
+        generator = ImageDataGenerator(rescale=1./255)\
+            .flow_from_directory(path_dir, shuffle=True, batch_size=1, target_size=(51, 51))
 
-    Parameters:
-        dirs: string[] - Images will have same output as dir index. E. g. images from dirs[0] will have output 0.
-        transform: boolean - All images will be rotated/inverted, so input set will be bigger.
+        return get_data_from_generator(generator, transform_input, generator.n)
+    else:
+        generator = ImageDataGenerator(rescale=1./255).flow_from_directory(path_dir, target_size=(51, 51), batch_size=1)
 
-    Returns:
-        np.array, np.array - First array contains images of shape (size_x, size_y, 3), second array goals, e. g. [0, 1].
-    """
-    dir_images = []
-    images_count = 0
+        return get_data_from_generator(generator, transform_input, generator.n)
 
-    for i in range(len(dirs)):
-        dir_images.append([])
-        file_names = os.listdir(dirs[i])
 
-        for j in range(len(file_names)):
-            file_path = os.path.join(dirs[i], file_names[j])
-            img = read_img(file_path)
+def get_data_from_generator(generator, transform, count):
+    imgs, targets = next(generator)
+    generator.reset()
 
-            dir_images[i].append(img)
-            images_count += 1
+    inputs_shape = list(transform(imgs[0]).shape)
+    inputs_shape.insert(0, count)
+    inputs_shape = tuple(inputs_shape)
 
-    (size_y, size_x, depth) = dir_images[0][0].shape
+    targets_shape = list(targets.shape)
+    targets_shape[0] = count
+    targets_shape = tuple(targets_shape)
 
-    inputs = np.zeros((images_count, size_y, size_x, depth))
-    outputs = np.zeros((images_count, 2))
+    inputs, targets = np.zeros(inputs_shape), np.zeros(targets_shape)
 
-    index = 0
+    for i in range(inputs_shape[0]):
+        imgs, outputs = next(generator)
+        inputs[i, :], targets[i, :] = transform(imgs[0, :]), outputs[0, :]
 
-    for i in range(len(dir_images)):
-        for j in range(len(dir_images[i])):
-            inputs[index, :, :, :] = dir_images[i][j]
-            outputs[index, :] = create_output(i, len(dir_images))
-            index += 1
-
-    return inputs, outputs
+    return inputs, targets
 
 
 def col(value, char=" ", width=11):

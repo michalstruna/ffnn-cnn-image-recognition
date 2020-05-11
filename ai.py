@@ -18,32 +18,22 @@ class NeuralNetwork(ABC):
         pass
 
     @abstractmethod
-    def transform_inputs(self, inputs):
+    def transform_input(self, input):
         pass
 
     def run(self, inputs):
         final_inputs = self.transform_inputs(inputs)
         return self.model.predict(final_inputs)
 
-    def train(self, inputs, targets, epochs, batch, val):
-        final_inputs = self.transform_inputs(inputs)
-        self.build(final_inputs[0].shape)
-
-        early_stopping = EarlyStopping(monitor="val_loss", patience=100)
-
-        return self.model.fit(final_inputs, targets, epochs=epochs, callbacks=[early_stopping], batch_size=batch, validation_split=val, verbose=2)
+    def train(self, inputs, targets, patience, batch_size, val_split):
+        self.build(inputs[0].shape)
+        early_stopping = EarlyStopping(monitor="val_loss", patience=patience)
+        return self.model.fit(inputs, targets, epochs=5000, callbacks=[early_stopping], validation_split=val_split, batch_size=batch_size, verbose=2)
 
     def test(self, inputs, targets):
-        outputs = np.round(self.run(inputs))
-        trues, falses = 0, 0
-
-        for i in range(len(outputs)):
-            if np.array_equal(outputs[i], targets[i]):
-                trues += 1
-            else:
-                falses += 1
-
-        return trues, falses
+        outputs = self.model.predict(inputs)
+        trues = (np.argmax(targets, 1) == np.argmax(outputs, 1)).sum()
+        return trues, len(inputs) - trues
 
     def summary(self):
         self.model.summary()
@@ -58,48 +48,40 @@ class NeuralNetwork(ABC):
         self.model = load_model(filename if filename else self.get_default_filename())
 
 
-# Feedforward neural network.
 class FFNN(NeuralNetwork):
 
     def __str__(self):
         return "FFNN"
 
     def build(self, input_shape):
-        self.model = Sequential()
-        self.model.add(Dense(16, input_dim=input_shape[0], activation=tf.nn.tanh))
-        self.model.add(Dense(2, activation=tf.nn.softmax))
-        self.model.compile(optimizer=tf.keras.optimizers.RMSprop(), loss="mse")
-
-    def transform_inputs(self, inputs):
-        hog_size = self.hog(inputs[0]).shape[0]
-
-        result = np.zeros((inputs.shape[0], hog_size))
-
-        for i in range(len(inputs)):
-            result[i, :] = self.hog(inputs[i])
-
-        return result
-
-    def hog(self, img):
-        return feature.hog(img, orientations=9, pixels_per_cell=(2, 2))
-
-
-# Convolution neural network.
-class CNN(NeuralNetwork):
-
-    def __str__(self):
-        return "CNN"
-
-    def build2(self, input_shape):
         self.model = Sequential([
-            Conv2D(filters=8, kernel_size=(3, 3), activation=tf.nn.relu, input_shape=input_shape, padding="same"),
-            MaxPooling2D(pool_size=(2, 2), strides=(2, 2)),
-            Flatten(),
-            Dense(8, activation=tf.nn.tanh),
+            Dense(8, input_dim=input_shape[0], activation=tf.nn.tanh),
+            Dropout(0.4),
             Dense(2, activation=tf.nn.softmax)
         ])
 
         self.model.compile(optimizer=tf.keras.optimizers.RMSprop(learning_rate=0.00001), loss="mse")
 
-    def transform_inputs(self, inputs):
-        return inputs
+    def transform_input(self, input):
+        return feature.hog(input, orientations=9, pixels_per_cell=(2, 2))
+
+
+class CNN(NeuralNetwork):
+
+    def __str__(self):
+        return "CNN"
+
+    def build(self, input_shape):
+        self.model = Sequential([
+            Conv2D(32, kernel_size=(3, 3), activation=tf.nn.relu, input_shape=input_shape),
+            MaxPooling2D(),
+            Flatten(),
+            Dense(32, activation=tf.nn.relu),
+            Dropout(0.5),
+            Dense(2, activation=tf.nn.softmax)
+        ])
+
+        self.model.compile(optimizer=tf.keras.optimizers.RMSprop(learning_rate=0.0001), loss="mse")
+
+    def transform_input(self, input):
+        return input

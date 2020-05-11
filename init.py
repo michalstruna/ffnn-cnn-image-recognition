@@ -6,6 +6,7 @@ Because of error on Linux:
 Unknown: Failed to get convolution algorithm. This is probably because cuDNN failed to initialize.
 """
 config = ConfigProto()
+config.gpu_options.per_process_gpu_memory_fraction = 0.2
 config.gpu_options.allow_growth = True
 session = InteractiveSession(config=config)
 
