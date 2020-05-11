@@ -14,7 +14,7 @@ class NeuralNetwork(ABC):
         self.model = None
 
     @abstractmethod
-    def build(self, input_dim):
+    def build(self, input_dim, rate):
         pass
 
     @abstractmethod
@@ -22,11 +22,11 @@ class NeuralNetwork(ABC):
         pass
 
     def run(self, inputs):
-        final_inputs = self.transform_inputs(inputs)
+        final_inputs = self.transform_input(inputs)
         return self.model.predict(final_inputs)
 
-    def train(self, inputs, targets, patience, batch_size, val_split):
-        self.build(inputs[0].shape)
+    def train(self, inputs, targets, patience, rate, batch_size, val_split):
+        self.build(inputs[0].shape, rate)
         early_stopping = EarlyStopping(monitor="val_loss", patience=patience)
         return self.model.fit(inputs, targets, epochs=5000, callbacks=[early_stopping], validation_split=val_split, batch_size=batch_size, verbose=2)
 
@@ -53,14 +53,14 @@ class FFNN(NeuralNetwork):
     def __str__(self):
         return "FFNN"
 
-    def build(self, input_shape):
+    def build(self, input_shape, rate):
         self.model = Sequential([
             Dense(8, input_dim=input_shape[0], activation=tf.nn.tanh),
             Dropout(0.4),
             Dense(2, activation=tf.nn.softmax)
         ])
 
-        self.model.compile(optimizer=tf.keras.optimizers.RMSprop(learning_rate=0.00001), loss="mse")
+        self.model.compile(optimizer=tf.keras.optimizers.RMSprop(learning_rate=rate), loss="mse")
 
     def transform_input(self, input):
         return feature.hog(input, orientations=9, pixels_per_cell=(2, 2))
@@ -71,7 +71,7 @@ class CNN(NeuralNetwork):
     def __str__(self):
         return "CNN"
 
-    def build(self, input_shape):
+    def build(self, input_shape, rate):
         self.model = Sequential([
             Conv2D(32, kernel_size=(3, 3), activation=tf.nn.relu, input_shape=input_shape),
             MaxPooling2D(),
@@ -81,7 +81,7 @@ class CNN(NeuralNetwork):
             Dense(2, activation=tf.nn.softmax)
         ])
 
-        self.model.compile(optimizer=tf.keras.optimizers.RMSprop(learning_rate=0.0001), loss="mse")
+        self.model.compile(optimizer=tf.keras.optimizers.RMSprop(learning_rate=rate), loss="mse")
 
     def transform_input(self, input):
         return input

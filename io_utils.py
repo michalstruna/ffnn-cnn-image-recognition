@@ -16,22 +16,22 @@ def read_args():
                         help="Specify neural network used for selected operation. If not specified, both of FFNN and "
                              "CNN will be used.")
 
-    parser.add_argument("--dir", "-d", type=str, nargs=2, metavar=("POS", "NEG"),
+    parser.add_argument("--dir", "-d", type=str,
                         help="Specify dirs for testing or training. If not specified, positive/test and negative/test "
                              "will be used for test and positive/train and negative/train will be used for training.")
 
     parser.add_argument("--test", "-t", action="store_true",
-                        help="Test selected neural network (--use)  with all images in selected dirs (--dir).")
+                        help="Test selected neural network (--use) with all images in selected dir (--dir).")
 
-    parser.add_argument("--train", "-tr", type=float, nargs=3, metavar=("EPOCHS", "BATCH_SIZE", "VALIDATION"),
-                        help="Train selected neural network (--use) with all images in selected dirs (--dir).")
+    parser.add_argument("--train", "-tr", type=float, nargs=4, metavar=("PATIENCE", "RATE", "BATCH_SIZE", "VALIDATION"),
+                        help="Train selected neural network (--use) with all images in selected dir (--dir).")
 
     return parser.parse_args()
 
 
 # Depends on program argument --use return list of networks that will be used for selected operation.
 def get_networks(use, neurons):
-    if not use:
+    if not use: # If --use is not specified, return both of CNN and FFNN.
         return [CNN(), FFNN()]
     else:
         return [FFNN()] if use == "FFNN" else [CNN()]
@@ -41,16 +41,6 @@ def print_network_type(network):
     print("\n" + "=" * (len(str(network)) + 42))
     print("=" * 20, network, "=" * 20)
     print("=" * (len(str(network)) + 42) + "\n")
-
-
-def read_img(path):
-    image = plt.imread(path)
-    return image
-
-
-def show_img(img):
-    plt.imshow(img)
-    plt.show()
 
 
 def create_output(value, size):
@@ -76,7 +66,8 @@ def prepare_input_set(path_dir, train=False, transform_input=None):
     else:
         generator = ImageDataGenerator(rescale=1./255).flow_from_directory(path_dir, target_size=(51, 51), batch_size=1)
 
-        return get_data_from_generator(generator, transform_input, generator.n)
+        inp, out = get_data_from_generator(generator, transform_input, generator.n)
+        return inp, out
 
 
 def get_data_from_generator(generator, transform, count):

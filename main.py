@@ -3,6 +3,7 @@
 import init
 import numpy as np
 import time
+import os
 
 import io_utils
 
@@ -18,25 +19,19 @@ for network in networks:
         console.print_run(network, result)
 
     elif args.test:
-        #positive_dir = args.dir[0] if args.dir else os.path.join("img", "pos", "test")
-        #negative_dir = args.dir[1] if args.dir else os.path.join("img", "neg", "test")
-        #inputs, outputs = io_utils.prepare_input_set([positive_dir, negative_dir])
-
-        inputs, targets = io_utils.prepare_input_set("img/heads_and_non_heads/test", transform_input=network.transform_input)
+        dir = args.dir if args.dir else os.path.join("img", "test")
+        inputs, targets = io_utils.prepare_input_set(dir, transform_input=network.transform_input)
 
         network.load()
         trues, falses = network.test(inputs, targets)
         console.print_test(network, trues, falses)
 
     elif args.train:
-        #positive_dir = args.dir[0] if args.dir else os.path.join("img", "pos", "train")
-        #negative_dir = args.dir[1] if args.dir else os.path.join("img", "neg", "train")
-        #inputs, outputs = io_utils.prepare_input_set([positive_dir, negative_dir], True)
-
-        inputs, targets = io_utils.prepare_input_set("img/heads_and_non_heads/train", train=True, transform_input=network.transform_input)
+        dir = args.dir if args.dir else os.path.join("img", "train")
 
         start = time.time()
-        history = network.train(inputs, targets, int(args.train[0]), int(args.train[1]), float(args.train[2]))
+        inputs, targets = io_utils.prepare_input_set(dir, train=True, transform_input=network.transform_input)
+        history = network.train(inputs, targets, int(args.train[0]), float(args.train[1]), int(args.train[2]), float(args.train[3]))
         end = time.time()
 
         network.save()
