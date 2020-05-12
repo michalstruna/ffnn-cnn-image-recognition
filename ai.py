@@ -48,6 +48,24 @@ class NeuralNetwork(ABC):
         self.model = load_model(filename if filename else self.get_default_filename())
 
 
+class GeneratorNeuralNetwork(NeuralNetwork, ABC):
+
+    def transform_input(self, input):
+        return input
+
+    def train(self, train_set, val_set, patience, rate, batch_size):
+        imgs, targets = next(train_set)
+        train_set.reset()
+        self.build(imgs[0].shape, rate)
+        early_stopping = EarlyStopping(monitor="val_loss", patience=patience)
+        return self.model.fit(train_set, epochs=5000, callbacks=[early_stopping], validation_data=val_set, batch_size=batch_size, verbose=2)
+
+    def test(self, test_set):
+        outputs = np.argmax(self.model.predict(test_set), 1)
+        trues = (outputs == test_set.labels).sum()
+        return trues, test_set.n - trues
+
+
 class FFNN(NeuralNetwork):
 
     def __str__(self):
@@ -55,7 +73,7 @@ class FFNN(NeuralNetwork):
 
     def build(self, input_shape, rate):
         self.model = Sequential([
-            Dense(8, input_dim=input_shape[0], activation=tf.nn.tanh),
+            Dense(4, input_dim=input_shape[0], activation=tf.nn.tanh),
             Dropout(0.4),
             Dense(2, activation=tf.nn.softmax)
         ])
@@ -66,22 +84,21 @@ class FFNN(NeuralNetwork):
         return feature.hog(input, orientations=9, pixels_per_cell=(2, 2))
 
 
-class CNN(NeuralNetwork):
+class CNN(GeneratorNeuralNetwork):
 
     def __str__(self):
         return "CNN"
 
     def build(self, input_shape, rate):
         self.model = Sequential([
-            Conv2D(32, kernel_size=(3, 3), activation=tf.nn.relu, input_shape=input_shape),
+            Conv2D(16, kernel_size=(3, 3), activation=tf.nn.relu, input_shape=input_shape),
+            MaxPooling2D(),
+            Conv2D(32, kernel_size=(3, 3), activation=tf.nn.relu),
             MaxPooling2D(),
             Flatten(),
-            Dense(32, activation=tf.nn.relu),
-            Dropout(0.5),
+            Dense(64, activation=tf.nn.relu),
+            Dropout(0.3),
             Dense(2, activation=tf.nn.softmax)
         ])
 
         self.model.compile(optimizer=tf.keras.optimizers.RMSprop(learning_rate=rate), loss="mse")
-
-    def transform_input(self, input):
-        return input

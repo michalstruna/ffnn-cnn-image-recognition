@@ -30,44 +30,30 @@ def read_args():
 
 
 # Depends on program argument --use return list of networks that will be used for selected operation.
-def get_networks(use, neurons):
+def get_networks(use):
     if not use: # If --use is not specified, return both of CNN and FFNN.
         return [CNN(), FFNN()]
     else:
         return [FFNN()] if use == "FFNN" else [CNN()]
+    
 
-
-def print_network_type(network):
-    print("\n" + "=" * (len(str(network)) + 42))
-    print("=" * 20, network, "=" * 20)
-    print("=" * (len(str(network)) + 42) + "\n")
-
-
-def create_output(value, size):
-    """
-    Parameters:
-        value: int - Order of output value that should have value 1.
-        size: int - Count of output values.
-
-    Returns:
-        np.array - Array with only zeros and one 1 at position value, e. g. [0, 1, 0, 0] for value = 1 and size = 4.
-    """
-    output = np.zeros(size)
-    output[value] = 1
-    return output
-
-
-def prepare_input_set(path_dir, train=False, transform_input=None):
-    if train:
-        generator = ImageDataGenerator(rescale=1./255)\
-            .flow_from_directory(path_dir, shuffle=True, batch_size=1, target_size=(51, 51))
-
-        return get_data_from_generator(generator, transform_input, generator.n)
+def prepare_input_set(path_dir, train=False, transform_input=None, val_split=0.15):
+    if transform_input:
+        if train:
+            generator = ImageDataGenerator(rescale=1. / 255).flow_from_directory(path_dir, batch_size=1, target_size=(51, 51))
+            return get_data_from_generator(generator, transform_input, generator.n)
+        else:
+            generator = ImageDataGenerator(rescale=1. / 255).flow_from_directory(path_dir, target_size=(51, 51), batch_size=1, shuffle=False)
+            inp, out = get_data_from_generator(generator, transform_input, generator.n)
+            return inp, out
     else:
-        generator = ImageDataGenerator(rescale=1./255).flow_from_directory(path_dir, target_size=(51, 51), batch_size=1)
-
-        inp, out = get_data_from_generator(generator, transform_input, generator.n)
-        return inp, out
+        if train:
+            generator = ImageDataGenerator(validation_split=val_split, rescale=1./255, rotation_range=45, height_shift_range=0.1, brightness_range=(0.5, 1), shear_range=0.1, zoom_range=0.1, channel_shift_range=0.3)
+            train_set = generator.flow_from_directory(path_dir, batch_size=1, target_size=(51, 51), subset="training", color_mode="grayscale")
+            val_set = generator.flow_from_directory(path_dir, batch_size=1, target_size=(51, 51), subset="validation", color_mode="grayscale")
+            return train_set, val_set
+        else:
+            return ImageDataGenerator(rescale=1. / 255).flow_from_directory(path_dir, target_size=(51, 51), batch_size=1, shuffle=False, color_mode="grayscale")
 
 
 def get_data_from_generator(generator, transform, count):
