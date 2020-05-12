@@ -1,9 +1,11 @@
 from argparse import ArgumentParser
 from matplotlib import pyplot as plt
 import numpy as np
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from tensorflow.keras.preprocessing.image import ImageDataGenerator, load_img, img_to_array
 
 from ai import FFNN, CNN
+
+IMG_SIZE = (51, 51)
 
 
 def read_args():
@@ -35,25 +37,30 @@ def get_networks(use):
         return [CNN(), FFNN()]
     else:
         return [FFNN()] if use == "FFNN" else [CNN()]
-    
+
+
+def read_img(path, grayscale=False):
+    color_mode = "grayscale" if grayscale else "rgb"
+    return img_to_array(load_img(path, color_mode=color_mode, target_size=IMG_SIZE)) / 255
+
 
 def prepare_input_set(path_dir, train=False, transform_input=None, val_split=0.15):
     if transform_input:
         if train:
-            generator = ImageDataGenerator(rescale=1. / 255).flow_from_directory(path_dir, batch_size=1, target_size=(51, 51))
+            generator = ImageDataGenerator(rescale=1. / 255).flow_from_directory(path_dir, batch_size=1, target_size=IMG_SIZE)
             return get_data_from_generator(generator, transform_input, generator.n)
         else:
-            generator = ImageDataGenerator(rescale=1. / 255).flow_from_directory(path_dir, target_size=(51, 51), batch_size=1, shuffle=False)
+            generator = ImageDataGenerator(rescale=1. / 255).flow_from_directory(path_dir, target_size=IMG_SIZE, batch_size=1, shuffle=False)
             inp, out = get_data_from_generator(generator, transform_input, generator.n)
             return inp, out
     else:
         if train:
             generator = ImageDataGenerator(validation_split=val_split, rescale=1./255, rotation_range=45, height_shift_range=0.1, brightness_range=(0.5, 1), shear_range=0.1, zoom_range=0.1, channel_shift_range=0.3)
-            train_set = generator.flow_from_directory(path_dir, batch_size=1, target_size=(51, 51), subset="training", color_mode="grayscale")
-            val_set = generator.flow_from_directory(path_dir, batch_size=1, target_size=(51, 51), subset="validation", color_mode="grayscale")
+            train_set = generator.flow_from_directory(path_dir, batch_size=1, target_size=IMG_SIZE, subset="training", color_mode="grayscale")
+            val_set = generator.flow_from_directory(path_dir, batch_size=1, target_size=IMG_SIZE, subset="validation", color_mode="grayscale")
             return train_set, val_set
         else:
-            return ImageDataGenerator(rescale=1. / 255).flow_from_directory(path_dir, target_size=(51, 51), batch_size=1, shuffle=False, color_mode="grayscale")
+            return ImageDataGenerator(rescale=1. / 255).flow_from_directory(path_dir, target_size=IMG_SIZE, batch_size=1, shuffle=False, color_mode="grayscale")
 
 
 def get_data_from_generator(generator, transform, count):
@@ -94,9 +101,9 @@ class Console:
         if self.row_i == 0:
             self.row("", "Výsledek", "Zaokrouhl.", "Závěr")
 
-        f_result = "[" + str(self.f(result[0][0])) + " " + str(self.f(result[0][1])) + "]"
+        f_result = "[" + str(self.f(result[0])) + " " + str(self.f(result[1])) + "]"
 
-        rounded = np.round(result[0])
+        rounded = np.round(result)
 
         self.row(network, f_result, rounded.astype(int), "Je hlava" if rounded[0] > rounded[1] else "Není hlava")
 

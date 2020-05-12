@@ -21,9 +21,10 @@ class NeuralNetwork(ABC):
     def transform_input(self, input):
         pass
 
-    def run(self, inputs):
-        final_inputs = self.transform_input(inputs)
-        return self.model.predict(final_inputs)
+    def run(self, input):
+        final_input = self.transform_input(input)
+        print(input.shape, final_input.shape, np.array([final_input]).shape)
+        return self.model.predict(np.array([final_input]))[0]
 
     def train(self, inputs, targets, patience, rate, batch_size, val_split):
         self.build(inputs[0].shape, rate)
@@ -73,7 +74,7 @@ class FFNN(NeuralNetwork):
 
     def build(self, input_shape, rate):
         self.model = Sequential([
-            Dense(4, input_dim=input_shape[0], activation=tf.nn.tanh),
+            Dense(64, input_dim=input_shape[0], activation=tf.nn.tanh),
             Dropout(0.4),
             Dense(2, activation=tf.nn.softmax)
         ])

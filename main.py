@@ -13,17 +13,19 @@ args = io_utils.read_args()
 networks = io_utils.get_networks(args.use)
 
 for network in networks:
+    is_generator = isinstance(network, GeneratorNeuralNetwork)
+
     if args.run:
         network.load()
-        img = io_utils.read_img(args.run)
-        result = network.run(np.array([img]))
+        img = io_utils.read_img(args.run, grayscale=is_generator)
+        result = network.run(img)
         console.print_run(network, result)
 
     elif args.test:
         dir = args.dir if args.dir else os.path.join("img", "test")
         network.load()
 
-        if isinstance(network, GeneratorNeuralNetwork):
+        if is_generator:
             test_set = io_utils.prepare_input_set(dir)
             trues, falses = network.test(test_set)
         else:
@@ -37,7 +39,7 @@ for network in networks:
 
         start = time.time()
 
-        if isinstance(network, GeneratorNeuralNetwork):
+        if is_generator:
             train_set, val_set = io_utils.prepare_input_set(dir, train=True, val_split=float(args.train[3]))
             history = network.train(train_set, val_set, int(args.train[0]), float(args.train[1]), int(args.train[2]))
         else:
