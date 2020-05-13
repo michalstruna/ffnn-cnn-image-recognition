@@ -23,7 +23,6 @@ class NeuralNetwork(ABC):
 
     def run(self, input):
         final_input = self.transform_input(input)
-        print(input.shape, final_input.shape, np.array([final_input]).shape)
         return self.model.predict(np.array([final_input]))[0]
 
     def train(self, inputs, targets, patience, rate, batch_size, val_split):
@@ -74,7 +73,7 @@ class FFNN(NeuralNetwork):
 
     def build(self, input_shape, rate):
         self.model = Sequential([
-            Dense(64, input_dim=input_shape[0], activation=tf.nn.tanh),
+            Dense(8, input_dim=input_shape[0], activation=tf.nn.tanh),
             Dropout(0.4),
             Dense(2, activation=tf.nn.softmax)
         ])
@@ -92,9 +91,11 @@ class CNN(GeneratorNeuralNetwork):
 
     def build(self, input_shape, rate):
         self.model = Sequential([
-            Conv2D(16, kernel_size=(3, 3), activation=tf.nn.relu, input_shape=input_shape),
+            Conv2D(16, kernel_size=(3, 3), activation=tf.nn.relu, input_shape=input_shape, padding="same"),
             MaxPooling2D(),
-            Conv2D(32, kernel_size=(3, 3), activation=tf.nn.relu),
+            Conv2D(32, kernel_size=(3, 3), activation=tf.nn.relu, padding="same"),
+            MaxPooling2D(),
+            Conv2D(64, kernel_size=(3, 3), activation=tf.nn.relu, padding="same"),
             MaxPooling2D(),
             Flatten(),
             Dense(64, activation=tf.nn.relu),
@@ -102,4 +103,4 @@ class CNN(GeneratorNeuralNetwork):
             Dense(2, activation=tf.nn.softmax)
         ])
 
-        self.model.compile(optimizer=tf.keras.optimizers.RMSprop(learning_rate=rate), loss="mse")
+        self.model.compile(optimizer=tf.keras.optimizers.RMSprop(learning_rate=rate), loss=tf.keras.losses.categorical_crossentropy)

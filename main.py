@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 
 import init
-import numpy as np
 import time
 import os
 
@@ -36,11 +35,10 @@ for network in networks:
 
     elif args.train:
         dir = args.dir if args.dir else os.path.join("img", "train")
-
         start = time.time()
 
         if is_generator:
-            train_set, val_set = io_utils.prepare_input_set(dir, train=True, val_split=float(args.train[3]))
+            train_set, val_set = io_utils.prepare_input_set(dir, train=True, val_split=float(args.train[3]), batch_size=int(args.train[2]))
             history = network.train(train_set, val_set, int(args.train[0]), float(args.train[1]), int(args.train[2]))
         else:
             inputs, targets = io_utils.prepare_input_set(dir, train=True, transform_input=network.transform_input)

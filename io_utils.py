@@ -44,7 +44,7 @@ def read_img(path, grayscale=False):
     return img_to_array(load_img(path, color_mode=color_mode, target_size=IMG_SIZE)) / 255
 
 
-def prepare_input_set(path_dir, train=False, transform_input=None, val_split=0.15):
+def prepare_input_set(path_dir, train=False, transform_input=None, val_split=0.15, batch_size=1):
     if transform_input:
         if train:
             generator = ImageDataGenerator(rescale=1. / 255).flow_from_directory(path_dir, batch_size=1, target_size=IMG_SIZE)
@@ -55,9 +55,9 @@ def prepare_input_set(path_dir, train=False, transform_input=None, val_split=0.1
             return inp, out
     else:
         if train:
-            generator = ImageDataGenerator(validation_split=val_split, rescale=1./255, rotation_range=45, height_shift_range=0.1, brightness_range=(0.5, 1), shear_range=0.1, zoom_range=0.1, channel_shift_range=0.3)
-            train_set = generator.flow_from_directory(path_dir, batch_size=1, target_size=IMG_SIZE, subset="training", color_mode="grayscale")
-            val_set = generator.flow_from_directory(path_dir, batch_size=1, target_size=IMG_SIZE, subset="validation", color_mode="grayscale")
+            generator = ImageDataGenerator(validation_split=val_split, rescale=1./255, rotation_range=45, height_shift_range=0.1, brightness_range=(0.7, 1), zoom_range=0.1)
+            train_set = generator.flow_from_directory(path_dir, batch_size=batch_size, target_size=IMG_SIZE, subset="training", color_mode="grayscale")
+            val_set = generator.flow_from_directory(path_dir, batch_size=batch_size, target_size=IMG_SIZE, subset="validation", color_mode="grayscale")
             return train_set, val_set
         else:
             return ImageDataGenerator(rescale=1. / 255).flow_from_directory(path_dir, target_size=IMG_SIZE, batch_size=1, shuffle=False, color_mode="grayscale")
